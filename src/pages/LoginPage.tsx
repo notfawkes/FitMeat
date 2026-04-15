@@ -1,5 +1,5 @@
 import React, { useState } from 'react';
-import { supabase } from '../supabaseClient';
+import { useAuth } from '../context/AuthContext';
 import { Link, useNavigate } from 'react-router-dom';
 import { MailIcon, LockIcon, ArrowRightIcon } from 'lucide-react';
 
@@ -10,23 +10,16 @@ export const LoginPage: React.FC = () => {
   const [error, setError] = useState('');
   const navigate = useNavigate();
 
+  const { login } = useAuth();
+
   const handleLogin = async (e: React.FormEvent) => {
     e.preventDefault();
     setLoading(true);
     setError('');
 
     try {
-      const { error: signInError } = await supabase.auth.signInWithPassword({
-        email: email,
-        password: password,
-      });
-
-      if (signInError) {
-        setError(signInError.message);
-        return;
-      }
-
-      navigate('/'); // Redirect to landing page
+      await login({ email, password });
+      navigate('/');
     } catch (err: any) {
       setError(err.message || 'An unexpected error occurred during login.');
     } finally {

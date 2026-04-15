@@ -1,5 +1,5 @@
 import React, { useState } from 'react';
-import { supabase } from '../supabaseClient';
+import { useAuth } from '../context/AuthContext';
 import { Link, useNavigate } from 'react-router-dom';
 import { UserIcon, PhoneIcon, MailIcon, LockIcon, MapPinIcon } from 'lucide-react';
 
@@ -14,6 +14,8 @@ export const RegisterPage: React.FC = () => {
   const [error, setError] = useState('');
   const navigate = useNavigate();
 
+  const { signup } = useAuth();
+
   const handleRegister = async (e: React.FormEvent) => {
     e.preventDefault();
     setLoading(true);
@@ -21,40 +23,13 @@ export const RegisterPage: React.FC = () => {
     setError('');
 
     try {
-      const { data, error: signUpError } = await supabase.auth.signUp({
-        email: email,
-        password: password,
-        options: {
-          data: {
-            full_name: name,
-            address: address,
-            phone_number: phoneNumber,
-          },
-        },
+      await signup({
+        email,
+        password,
+        name,
+        address,
+        phoneNumber,
       });
-
-      if (signUpError) {
-        setError(signUpError.message);
-        return;
-      }
-
-      if (data.user) {
-        const { error: insertProfileError } = await supabase
-          .from('profiles')
-          .insert({
-            id: data.user.id,
-            name: name,
-            address: address,
-            phone_number: phoneNumber,
-          });
-
-        if (insertProfileError) {
-          console.error('Error inserting profile data:', insertProfileError.message);
-          setError('Registration successful, but failed to save profile details. Please try logging in.');
-          navigate('/login');
-          return;
-        }
-      }
 
       setMessage('Registration successful! Please check your email to verify your account. You can now login.');
       navigate('/login');

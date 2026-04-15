@@ -1,16 +1,17 @@
 import React, { useState, useEffect } from 'react';
-import { useNavigate } from 'react-router-dom';
+import { Navigate, useNavigate } from 'react-router-dom';
 import { useCart, CartItem } from '../context/CartContext';
+import { useAuth } from '../context/AuthContext';
 import { CartItem as CartItemComponent } from '../components/checkout/CartItem';
 import { TimeSlotSelector } from '../components/checkout/TimeSlotSelector';
 import { OrderSummary } from '../components/checkout/OrderSummary';
 import { PaymentOptions } from '../components/checkout/PaymentOptions';
 import { ArrowLeftIcon } from 'lucide-react';
-import { v4 as uuidv4 } from 'uuid';
-import { supabase } from '../supabaseClient';
+import { apiClient } from '../services/apiClient';
 
 export const CheckoutPage: React.FC = () => {
   const navigate = useNavigate();
+  const { user } = useAuth();
   const { items: cartItems, updateQuantity, removeFromCart, clearCart } = useCart();
   const [selectedTimeSlot, setSelectedTimeSlot] = useState('');
   const [paymentError, setPaymentError] = useState('');
@@ -23,6 +24,10 @@ export const CheckoutPage: React.FC = () => {
     }
   }, [cartItems, navigate]);
 
+  if (!user) {
+    return <Navigate to="/login" replace />;
+  }
+
   const subtotal = cartItems.reduce((sum, item) => sum + item.price * item.quantity, 0);
   const deliveryFee = 49;
   const total = subtotal + deliveryFee;
@@ -31,12 +36,6 @@ export const CheckoutPage: React.FC = () => {
     setIsProcessing(false);
 
     try {
-      const { data: { user }, error: userError } = await supabase.auth.getUser();
-      if (userError || !user) {
-        throw new Error('User not authenticated');
-      }
-
-      const orderId = uuidv4();
       const orderItems = cartItems.map(item => ({
         id: item.id,
         title: item.title,
@@ -45,20 +44,13 @@ export const CheckoutPage: React.FC = () => {
         image: item.image,
       }));
 
-      const { error: insertError } = await supabase
-        .from('orders')
-        .insert({
-          id: orderId,
-          user_id: user.id,
-          order_date: new Date().toISOString(),
-          total_amount: total,
-          items: orderItems,
-          status: 'completed',
-        });
-
-      if (insertError) {
-        throw insertError;
-      }
+      const response = await apiClient.post('/orders', {
+        order_date: new Date().toISOString(),
+        total_amount: total,
+        items: orderItems,
+        status: 'completed',
+        delivery_time_slot: selectedTimeSlot,
+      });
 
       clearCart();
       navigate('/success');
@@ -84,12 +76,10 @@ export const CheckoutPage: React.FC = () => {
 
     // Simulate payment processing based on selected payment method
     if (paymentMethod === 'card' || paymentMethod === 'gpay' || paymentMethod === 'upi') {
-      // For card, GPay, and UPI, simulate a successful payment after a delay
       setTimeout(() => {
         handlePaymentSuccess();
       }, 1500);
     } else if (paymentMethod === 'cod') {
-      // For Cash on Delivery, directly proceed to success
       handlePaymentSuccess();
     } else {
       handlePaymentError('Invalid payment method selected.');

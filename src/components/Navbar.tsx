@@ -1,33 +1,20 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState } from 'react';
 import { SearchIcon, UserIcon, MenuIcon, XIcon, ShoppingCartIcon } from 'lucide-react';
 import CartDropdown from './CartDropdown';
 import { useCart } from '../context/CartContext';
 import { Link, useNavigate } from 'react-router-dom';
-import { supabase } from '../supabaseClient';
+import { useAuth } from '../context/AuthContext';
 
 const Navbar = () => {
   const [isMenuOpen, setIsMenuOpen] = useState(false);
   const [location, setLocation] = useState('');
   const [isCartOpen, setIsCartOpen] = useState(false);
-  const [session, setSession] = useState<any>(null);
   const navigate = useNavigate();
-
+  const { user, logout } = useAuth();
   const { totalItems } = useCart();
 
-  useEffect(() => {
-    supabase.auth.getSession().then(({ data: { session } }) => {
-      setSession(session);
-    })
-
-    const { data: { subscription } } = supabase.auth.onAuthStateChange((_event, session) => {
-      setSession(session);
-    })
-
-    return () => subscription.unsubscribe();
-  }, []);
-
-  const handleLogout = async () => {
-    await supabase.auth.signOut();
+  const handleLogout = () => {
+    logout();
     navigate('/login');
   };
 
@@ -71,7 +58,7 @@ const Navbar = () => {
               </button>
               {isCartOpen && <CartDropdown onClose={() => setIsCartOpen(false)} />}
             </div>
-            {session ? (
+            {user ? (
               <>
                 <Link to="/profile" className="p-2 rounded-full hover:bg-secondary transition-colors" aria-label="Profile">
                   <UserIcon className="w-5 h-5" />
@@ -105,7 +92,7 @@ const Navbar = () => {
               <a href="#meals" className="hover:text-accent transition-colors">Meals</a>
               <a href="#testimonials" className="hover:text-accent transition-colors">Testimonials</a>
               <a href="#contact" className="hover:text-accent transition-colors">Contact</a>
-              {session ? (
+              {user ? (
                 <>
                   <Link to="/profile" className="hover:text-accent transition-colors">Profile</Link>
                   <button onClick={handleLogout} className="w-full text-left hover:text-accent transition-colors">Logout</button>

@@ -1,8 +1,8 @@
-import React, { useState, useEffect } from 'react';
+import React from 'react';
 import { useNavigate } from 'react-router-dom';
 import { useCart } from '../context/CartContext';
+import { useAuth } from '../context/AuthContext';
 import { Minus, Plus, X } from 'lucide-react';
-import { supabase } from '../supabaseClient'; // Import supabase
 
 const CartDropdown = ({
   onClose
@@ -10,25 +10,13 @@ const CartDropdown = ({
   onClose: () => void;
 }) => {
   const navigate = useNavigate();
-  const [session, setSession] = useState<any>(null); // Add session state
+  const { user } = useAuth();
   const {
     items,
     updateQuantity,
     removeFromCart,
     totalPrice
   } = useCart();
-
-  useEffect(() => {
-    supabase.auth.getSession().then(({ data: { session } }) => {
-      setSession(session);
-    });
-
-    const { data: { subscription } } = supabase.auth.onAuthStateChange((_event, session) => {
-      setSession(session);
-    });
-
-    return () => subscription.unsubscribe();
-  }, []);
 
   const handleCheckout = () => {
     onClose(); // Close the cart dropdown
@@ -82,7 +70,7 @@ const CartDropdown = ({
           <span className="font-semibold">Total:</span>
           <span className="font-bold text-lg">₹{totalPrice.toFixed(0)}</span>
         </div>
-        {session ? (
+        {user ? (
           <button 
             onClick={handleCheckout}
             className="w-full bg-primary text-white py-2 rounded-md hover:bg-secondary transition-colors"

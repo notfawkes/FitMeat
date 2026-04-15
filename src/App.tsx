@@ -7,6 +7,7 @@ import MealSelectionSection from './components/MealSelectionSection';
 import TestimonialsSection from './components/TestimonialsSection';
 import Footer from './components/Footer';
 import { CartProvider } from './context/CartContext';
+import { AuthProvider } from './context/AuthContext';
 import { CheckoutPage } from './pages/CheckoutPage';
 import { SuccessPage } from './pages/SuccessPage';
 import { LoginPage } from './pages/LoginPage';
@@ -79,20 +80,22 @@ class ErrorBoundary extends React.Component<
 export function App() {
   return (
     <ErrorBoundary>
-      <CartProvider>
-        <Router>
-          <Suspense fallback={<LoadingFallback />}>
-            <Routes>
-              <Route path="/" element={<LandingPage />} />
-              <Route path="/checkout" element={<CheckoutPage />} />
-              <Route path="/success" element={<SuccessPage />} />
-              <Route path="/login" element={<LoginPage />} />
-              <Route path="/register" element={<RegisterPage />} />
-              <Route path="/profile" element={<ProfilePage />} />
-            </Routes>
-          </Suspense>
-        </Router>
-      </CartProvider>
+      <AuthProvider>
+        <CartProvider>
+          <Router>
+            <Suspense fallback={<LoadingFallback />}>
+              <Routes>
+                <Route path="/" element={<LandingPage />} />
+                <Route path="/checkout" element={<CheckoutPage />} />
+                <Route path="/success" element={<SuccessPage />} />
+                <Route path="/login" element={<LoginPage />} />
+                <Route path="/register" element={<RegisterPage />} />
+                <Route path="/profile" element={<ProfilePage />} />
+              </Routes>
+            </Suspense>
+          </Router>
+        </CartProvider>
+      </AuthProvider>
     </ErrorBoundary>
   );
 }
