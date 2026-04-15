@@ -25,7 +25,7 @@ export const SuccessPage: React.FC = () => {
             Back to Home
           </button>
           <button
-            onClick={() => window.location.href = '/orders'}
+            onClick={() => navigate('/profile')}
             className="w-full border border-[#50C878] text-[#50C878] hover:bg-[#50C878] hover:text-white font-bold py-3 px-4 rounded-md transition-colors"
           >
             View Order Status

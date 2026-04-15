@@ -1,27 +1,4 @@
 CREATE EXTENSION IF NOT EXISTS pgcrypto;
-
-DROP TABLE IF EXISTS subscriptions CASCADE;
-DROP TABLE IF EXISTS product_dietary_preferences CASCADE;
-DROP TABLE IF EXISTS dietary_preferences CASCADE;
-DROP TABLE IF EXISTS ingredient_suppliers CASCADE;
-DROP TABLE IF EXISTS suppliers CASCADE;
-DROP TABLE IF EXISTS product_ingredients CASCADE;
-DROP TABLE IF EXISTS ingredients CASCADE;
-DROP TABLE IF EXISTS reviews CASCADE;
-DROP TABLE IF EXISTS payments CASCADE;
-DROP TABLE IF EXISTS order_items CASCADE;
-DROP TABLE IF EXISTS orders CASCADE;
-DROP TABLE IF EXISTS shipping_addresses CASCADE;
-DROP TABLE IF EXISTS inventory CASCADE;
-DROP TABLE IF EXISTS product_nutrition CASCADE;
-DROP TABLE IF EXISTS products CASCADE;
-DROP TABLE IF EXISTS categories CASCADE;
-DROP TABLE IF EXISTS profiles CASCADE;
-DROP TABLE IF EXISTS refresh_tokens CASCADE;
-DROP TABLE IF EXISTS password_reset_tokens CASCADE;
-DROP TABLE IF EXISTS email_verification_tokens CASCADE;
-DROP TABLE IF EXISTS users CASCADE;
-
 -- 1. users
 CREATE TABLE users (
   id uuid PRIMARY KEY DEFAULT gen_random_uuid(),
@@ -98,36 +75,16 @@ CREATE TABLE product_nutrition (
   calories int NOT NULL
 );
 
--- 9. inventory
-CREATE TABLE inventory (
-  product_id int PRIMARY KEY REFERENCES products(id) ON DELETE CASCADE,
-  quantity_in_stock int NOT NULL DEFAULT 0 CHECK (quantity_in_stock >= 0),
-  last_restocked timestamptz NOT NULL DEFAULT now()
-);
-
--- 10. shipping_addresses
-CREATE TABLE shipping_addresses (
-  id serial PRIMARY KEY,
-  user_id uuid NOT NULL REFERENCES users(id) ON DELETE CASCADE,
-  address_line_1 text NOT NULL,
-  address_line_2 text,
-  city text NOT NULL,
-  state text NOT NULL,
-  postal_code text NOT NULL,
-  is_default boolean NOT NULL DEFAULT false
-);
-
--- 11. orders
+-- 9. orders
 CREATE TABLE orders (
   id uuid PRIMARY KEY DEFAULT gen_random_uuid(),
   user_id uuid NOT NULL REFERENCES users(id) ON DELETE CASCADE,
   order_date timestamptz NOT NULL DEFAULT now(),
   total_amount numeric(10,2) NOT NULL,
-  status text NOT NULL DEFAULT 'pending',
-  shipping_address_id int REFERENCES shipping_addresses(id) ON DELETE SET NULL
+  status text NOT NULL DEFAULT 'pending'
 );
 
--- 12. order_items
+-- 10. order_items
 CREATE TABLE order_items (
   id serial PRIMARY KEY,
   order_id uuid NOT NULL REFERENCES orders(id) ON DELETE CASCADE,
@@ -136,80 +93,19 @@ CREATE TABLE order_items (
   unit_price numeric(10,2) NOT NULL
 );
 
--- 13. payments
-CREATE TABLE payments (
-  id serial PRIMARY KEY,
-  order_id uuid NOT NULL REFERENCES orders(id) ON DELETE CASCADE,
-  payment_method text NOT NULL,
-  amount numeric(10,2) NOT NULL,
-  payment_status text NOT NULL DEFAULT 'processing',
-  transaction_id text UNIQUE,
-  created_at timestamptz NOT NULL DEFAULT now()
-);
-
--- 14. reviews
-CREATE TABLE reviews (
-  id serial PRIMARY KEY,
-  user_id uuid NOT NULL REFERENCES users(id) ON DELETE CASCADE,
-  product_id int NOT NULL REFERENCES products(id) ON DELETE CASCADE,
-  rating int NOT NULL CHECK (rating >= 1 AND rating <= 5),
-  comment text,
-  created_at timestamptz NOT NULL DEFAULT now()
-);
-
--- 15. ingredients
+-- 11. ingredients
 CREATE TABLE ingredients (
   id serial PRIMARY KEY,
   name text NOT NULL UNIQUE,
   is_allergen boolean NOT NULL DEFAULT false
 );
 
--- 16. product_ingredients
+-- 12. product_ingredients
 CREATE TABLE product_ingredients (
   product_id int NOT NULL REFERENCES products(id) ON DELETE CASCADE,
   ingredient_id int NOT NULL REFERENCES ingredients(id) ON DELETE CASCADE,
   quantity_used text,
   PRIMARY KEY (product_id, ingredient_id)
-);
-
--- 17. suppliers
-CREATE TABLE suppliers (
-  id serial PRIMARY KEY,
-  name text NOT NULL UNIQUE,
-  contact_email text,
-  contact_phone text
-);
-
--- 18. ingredient_suppliers
-CREATE TABLE ingredient_suppliers (
-  ingredient_id int NOT NULL REFERENCES ingredients(id) ON DELETE CASCADE,
-  supplier_id int NOT NULL REFERENCES suppliers(id) ON DELETE CASCADE,
-  unit_cost numeric(10,2),
-  PRIMARY KEY (ingredient_id, supplier_id)
-);
-
--- 19. dietary_preferences
-CREATE TABLE dietary_preferences (
-  id serial PRIMARY KEY,
-  name text NOT NULL UNIQUE
-);
-
--- 20. product_dietary_preferences
-CREATE TABLE product_dietary_preferences (
-  product_id int NOT NULL REFERENCES products(id) ON DELETE CASCADE,
-  preference_id int NOT NULL REFERENCES dietary_preferences(id) ON DELETE CASCADE,
-  PRIMARY KEY (product_id, preference_id)
-);
-
--- 21. subscriptions
-CREATE TABLE subscriptions (
-  id serial PRIMARY KEY,
-  user_id uuid NOT NULL REFERENCES users(id) ON DELETE CASCADE,
-  plan_name text NOT NULL,
-  frequency text NOT NULL, -- e.g., weekly, monthly
-  cost numeric(10,2) NOT NULL,
-  next_billing_date timestamptz NOT NULL,
-  status text NOT NULL DEFAULT 'active'
 );
 
 ------------------------------------------------
@@ -255,11 +151,7 @@ INSERT INTO product_nutrition (product_id, protein, carbs, fats, calories) VALUE
   (5, 30.0, 15.0, 25.0, 405),
   (6, 15.0, 22.0, 12.0, 256);
 
--- Seed Inventory
-INSERT INTO inventory (product_id, quantity_in_stock) VALUES
-  (1, 100), (2, 85), (3, 50), (4, 120), (5, 40), (6, 200);
-
--- Seed Ingredients & Suppliers setup
+-- Seed Ingredients setup
 INSERT INTO ingredients (id, name, is_allergen) VALUES
   (1, 'Chicken Breast', false),
   (2, 'Brown Rice', false),
@@ -270,14 +162,6 @@ INSERT INTO ingredients (id, name, is_allergen) VALUES
 INSERT INTO product_ingredients (product_id, ingredient_id, quantity_used) VALUES
   (1, 1, '150g'), (1, 2, '1 cup'), (1, 3, '1/2 cup'),
   (2, 1, '150g'), (2, 4, '2 tbsp');
-
-INSERT INTO suppliers (id, name, contact_email) VALUES
-  (1, 'Farm Fresh Poultry', 'sales@farmfresh.com'),
-  (2, 'Global Grains', 'orders@globalgrains.com');
-
-INSERT INTO ingredient_suppliers (ingredient_id, supplier_id, unit_cost) VALUES
-  (1, 1, 4.50),
-  (2, 2, 0.80);
 
 -- Update Sequence for Products to allow new inserts
 SELECT setval('products_id_seq', (SELECT MAX(id) FROM products));

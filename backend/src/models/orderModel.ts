@@ -13,14 +13,17 @@ export async function createOrder(
   userId: string,
   totalAmount: number,
   items: any[],
-  status: string
+  status: string,
+  orderDate?: string
 ): Promise<OrderRecord> {
   const client = await pool.connect();
   try {
     await client.query('BEGIN');
     const orderRes = await client.query(
-      'INSERT INTO orders (user_id, total_amount, status) VALUES ($1, $2, $3) RETURNING *',
-      [userId, totalAmount, status]
+      orderDate
+        ? 'INSERT INTO orders (user_id, total_amount, status, order_date) VALUES ($1, $2, $3, $4) RETURNING *'
+        : 'INSERT INTO orders (user_id, total_amount, status) VALUES ($1, $2, $3) RETURNING *',
+      orderDate ? [userId, totalAmount, status, orderDate] : [userId, totalAmount, status]
     );
     const order = orderRes.rows[0];
 
@@ -43,13 +46,17 @@ export async function createOrder(
 
 export async function findOrdersByUserId(userId: string): Promise<OrderRecord[]> {
   const result = await query<OrderRecord>(
-    `SELECT o.*, 
+    `SELECT o.id,
+            o.user_id,
+            o.order_date,
+            o.total_amount::float AS total_amount,
+            o.status,
             COALESCE(
               json_agg(
                 json_build_object(
-                  'id', oi.product_id, 
-                  'quantity', oi.quantity, 
-                  'price', oi.unit_price
+                  'id', oi.product_id,
+                  'quantity', oi.quantity,
+                  'price', oi.unit_price::float
                 )
               ) FILTER (WHERE oi.id IS NOT NULL), '[]'
             ) as items

@@ -11,7 +11,7 @@ import { apiClient } from '../services/apiClient';
 
 export const CheckoutPage: React.FC = () => {
   const navigate = useNavigate();
-  const { user } = useAuth();
+  const { user, reloadProfile } = useAuth();
   const { items: cartItems, updateQuantity, removeFromCart, clearCart } = useCart();
   const [selectedTimeSlot, setSelectedTimeSlot] = useState('');
   const [paymentError, setPaymentError] = useState('');
@@ -44,7 +44,7 @@ export const CheckoutPage: React.FC = () => {
         image: item.image,
       }));
 
-      const response = await apiClient.post('/orders', {
+      await apiClient.post('/api/auth/orders', {
         order_date: new Date().toISOString(),
         total_amount: total,
         items: orderItems,
@@ -52,6 +52,7 @@ export const CheckoutPage: React.FC = () => {
         delivery_time_slot: selectedTimeSlot,
       });
 
+      await reloadProfile();
       clearCart();
       navigate('/success');
     } catch (error: any) {

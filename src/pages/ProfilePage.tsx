@@ -106,7 +106,7 @@ export const ProfilePage: React.FC = () => {
                       <div className="bg-gray-50 rounded-lg p-4 mb-4">
                         <div className="flex justify-between items-center mb-2">
                           <span className="text-gray-600">Total Amount</span>
-                          <span className="font-semibold text-[#013220]">₹{order.total_amount.toFixed(0)}</span>
+                          <span className="font-semibold text-[#013220]">₹{Number(order.total_amount ?? 0).toFixed(0)}</span>
                         </div>
                       </div>
 

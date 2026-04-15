@@ -9,6 +9,7 @@ interface MealCardProps {
   price: number;
   protein: number;
   isVeg: boolean;
+  onViewDetails?: () => void;
 }
 
 const MealCard = ({
@@ -18,7 +19,8 @@ const MealCard = ({
   description,
   price,
   protein,
-  isVeg
+  isVeg,
+  onViewDetails,
 }: MealCardProps) => {
   const { addToCart } = useCart();
 
@@ -59,12 +61,23 @@ const MealCard = ({
             {protein}g protein
           </div>
         </div>
-        <button
-          onClick={handleAddToCart}
-          className="mt-3 w-full bg-secondary text-white py-2 rounded-md hover:bg-primary transition-colors"
-        >
-          Add to Cart
-        </button>
+        <div className="space-y-3">
+          <button
+            onClick={handleAddToCart}
+            className="w-full bg-secondary text-white py-2 rounded-md hover:bg-primary transition-colors"
+          >
+            Add to Cart
+          </button>
+          {onViewDetails && (
+            <button
+              type="button"
+              onClick={onViewDetails}
+              className="w-full border border-gray-300 text-gray-700 py-2 rounded-md hover:border-[#50C878] hover:text-[#50C878] transition-colors"
+            >
+              View Details
+            </button>
+          )}
+        </div>
       </div>
     </div>
   );

@@ -5,6 +5,7 @@ import { requireAuth, type AuthRequest } from '../middleware/auth';
 import * as authService from '../services/authService';
 import { findProfileByUserId } from '../models/profileModel';
 import { findOrdersByUserId, createOrder } from '../models/orderModel';
+import { findUserById } from '../models/userModel';
 
 const router = Router();
 
@@ -78,8 +79,13 @@ router.post('/reset-password', validateBody(resetPasswordSchema), async (req, re
 router.get('/me', requireAuth, async (req: AuthRequest, res, next) => {
   try {
     const user = req.user!;
-    const profile = await findProfileByUserId(user.userId);
-    const orders = await findOrdersByUserId(user.userId);
+    const existingUser = await findUserById(user.userId);
+    if (!existingUser) {
+      return res.status(401).json({ error: 'Invalid user token' });
+    }
+
+    const profile = await findProfileByUserId(existingUser.id);
+    const orders = await findOrdersByUserId(existingUser.id);
     res.json({
       user,
       profile,
@@ -93,13 +99,19 @@ router.get('/me', requireAuth, async (req: AuthRequest, res, next) => {
 router.post('/orders', requireAuth, async (req: AuthRequest, res, next) => {
   try {
     const user = req.user!;
-    const { items, totalAmount } = req.body;
+    const existingUser = await findUserById(user.userId);
+    if (!existingUser) {
+      return res.status(401).json({ error: 'Invalid user token' });
+    }
 
-    if (!items || typeof totalAmount !== 'number') {
+    const { items, totalAmount, total_amount: totalAmountAlt } = req.body;
+    const total = typeof totalAmount === 'number' ? totalAmount : typeof totalAmountAlt === 'number' ? totalAmountAlt : undefined;
+
+    if (!items || typeof total !== 'number') {
       return res.status(400).json({ error: 'Missing order items or total amount' });
     }
 
-    const order = await createOrder(user.userId, totalAmount, items, 'completed');
+    const order = await createOrder(existingUser.id, total, items, 'completed');
     res.status(201).json(order);
   } catch (error) {
     next(error);
